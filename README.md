@@ -8,7 +8,6 @@ WhisperNet is a decentralized, anonymous file-sharing and chat application that 
 - **Peer-to-Peer Networking**: Direct, encrypted communication using advanced P2P protocols.
 - **Anonymous Chatrooms**: Create and manage chatrooms with customizable privacy settings.
 - **Secure File Sharing**: Upload and share files using decentralized storage solutions (e.g., IPFS).
-- **Community Governance**: Decentralized voting system for chatroom rules and moderation.
 
 ## Technologies Used
 
