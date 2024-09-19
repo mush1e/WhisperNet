@@ -1,0 +1,29 @@
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+build/
+WhisperNetConfig.cmake
+
+# Build directory
+/build/
+
+# Compiled object files
+*.o
+
+# Executables
+whispernet
+
+# IDE files
+*.idea/
+*.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
