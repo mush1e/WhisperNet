@@ -27,3 +27,6 @@ whispernet
 # Temporary files
 *.tmp
 *.temp
+
+#pem file
+*.pem

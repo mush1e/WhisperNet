@@ -1,4 +1,5 @@
 #include <iostream>
+#include "did.h"
 
 void printWelcomeMessage() {
     std::cout << R"(
@@ -12,5 +13,11 @@ void printWelcomeMessage() {
 
 int main() {
     printWelcomeMessage();
+    DID nodeDID;
+
+    // Display the public key (DID)
+    std::cout << "Node DID (Public Key):" << std::endl;
+    std::cout << nodeDID.getPublicKey() << std::endl;
+
     return 0;
 }
