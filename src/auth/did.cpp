@@ -1,10 +1,4 @@
-// File: src/auth/did.cpp
 #include "did.h"
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <iostream>
-#include <fstream>
 
 DID::DID() {
     if (!loadKeysFromFile("node_keys.pem")) {
@@ -51,6 +45,9 @@ void DID::generateKeyPair() {
     long pubLen = BIO_get_mem_data(pub, &pubKey);
     publicKey = std::string(pubKey, pubLen);
 
+    std::cout << "Enter a username for this node: ";
+    std::getline(std::cin, username);
+
     BIO_free_all(pri);
     BIO_free_all(pub);
     EVP_PKEY_free(pkey);
@@ -71,6 +68,7 @@ void DID::saveKeysToFile(const std::string& filename) const {
         throw std::runtime_error("Unable to open file for writing: " + filename);
     }
 
+    outFile << "Username: " << username << "\n";
     outFile << privateKey;
     outFile << publicKey;
     outFile.close();
@@ -86,6 +84,10 @@ bool DID::loadKeysFromFile(const std::string& filename) {
     bool isPrivate = false, isPublic = false;
 
     while (std::getline(inFile, line)) {
+        if (line.rfind("Username:", 0) == 0) {
+            username = line.substr(9);
+            continue;
+        }
         if (line == "-----BEGIN PRIVATE KEY-----") {
             isPrivate = true;
             continue;
