@@ -1,5 +1,5 @@
-#ifndef DID_H
-#define DID_H
+#pragma once
+
 
 #include <string>
 #include <openssl/rsa.h>
@@ -8,26 +8,26 @@
 #include <iostream>
 #include <fstream>
 
+namespace whispernet {
+    class DID {
+    public:
+        DID();
+        ~DID();
 
-class DID {
-public:
-    DID();
-    ~DID();
+        std::string getPublicKey() const;
+        std::string getPrivateKey() const;
+        std::string getUsername() const;
 
-    std::string getPublicKey() const;
-    std::string getPrivateKey() const;
-    std::string getUsername() const;
+        void setUsername(const std::string& uname);
+        void saveKeysToFile(const std::string& filename) const;
+        bool loadKeysFromFile(const std::string& filename);
 
-    void setUsername(const std::string& uname);
-    void saveKeysToFile(const std::string& filename) const;
-    bool loadKeysFromFile(const std::string& filename);
+    private:
+        std::string publicKey;
+        std::string privateKey;
+        std::string username;
 
-private:
-    std::string publicKey;
-    std::string privateKey;
-    std::string username;
+        void generateKeyPair();
+    };
+}
 
-    void generateKeyPair();
-};
-
-#endif

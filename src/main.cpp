@@ -13,7 +13,7 @@ void printWelcomeMessage() {
 
 int main() {
     printWelcomeMessage();
-    DID nodeDID;
+    whispernet::DID nodeDID;
 
     // Display the public key (DID)
     std::cout << "Node DID (Public Key):" << std::endl;
