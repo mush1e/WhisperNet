@@ -2,7 +2,7 @@
 
 namespace whispernet {
 
-    DID::DID() {
+    DID::DID(const std::string& username) : username(username) {
         if (!loadKeysFromFile("node_keys.pem")) {
             std::cout << "No existing keys found, generating new key pair." << std::endl;
             generateKeyPair();
@@ -48,8 +48,6 @@ namespace whispernet {
         long pubLen = BIO_get_mem_data(pub, &pubKey);
         publicKey = std::string(static_cast<const char*>(pubKey), static_cast<std::string::size_type>(pubLen));
 
-        std::cout << "Enter a username for this node: ";
-        std::getline(std::cin, username);
 
         BIO_free_all(pri);
         BIO_free_all(pub);
@@ -119,5 +117,18 @@ namespace whispernet {
 
         inFile.close();
         return true;
+    }
+
+    std::string DID::get_hashed_DID() const {
+        unsigned char hash[SHA256_DIGEST_LENGTH];
+        SHA256(reinterpret_cast<const unsigned char*>(publicKey.c_str()), publicKey.size(), hash);
+
+        // Convert hash to a hexadecimal string
+        std::stringstream ss;
+        for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+        }
+
+        return ss.str();
     }
 }
