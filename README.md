@@ -43,11 +43,6 @@ Stay Hidden, Stay Secure
 
 - **C++**: Core language for backend logic and P2P networking.
 - **OpenSSL / libsodium**: Provides encryption and cryptographic functionality for secure communication.
-- **libp2p / WebRTC**: Enables peer-to-peer networking for direct communication between nodes.
-- **IPFS**: Used for decentralized file storage and sharing.
-- **DID (Decentralized Identifier)**: Ensures secure, verifiable identities across the network without relying on a central authority.
-- **DHT (Distributed Hash Table)**: Used for decentralized username lookup and peer discovery.
-- **Protocol Buffers (protobuf)**: Used for efficient message serialization between peers.
 
 ---
 
