@@ -30,3 +30,5 @@ whispernet
 
 #pem file
 *.pem
+
+generated/
