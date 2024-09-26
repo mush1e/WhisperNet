@@ -1,9 +1,16 @@
 #pragma once
 
 #include <string>
-#include <map>
+#include <unordered_map>
+#include <utility>
 #include <mutex>
 #include <thread>
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <google/protobuf/stubs/common.h> 
+#include <random>
 
 namespace whispernet {
 
@@ -23,7 +30,7 @@ private:
     std::string username;
 
     std::mutex peers_mutex;
-    std::map<std::string, int> connected_peers; // username -> socket_fd
+    std::unordered_map<std::string, int> connected_peers; // username -> socket_fd
 
     void accept_connections();
     void process_incoming_request(int socket_fd);

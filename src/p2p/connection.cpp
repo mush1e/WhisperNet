@@ -1,13 +1,6 @@
 #include "connection.h"
 #include "whispernet.pb.h" 
 
-#include <iostream>
-#include <cstring>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <google/protobuf/stubs/common.h> 
-#include <random>
-
 namespace whispernet {
 
     Connection::Connection(const std::string& username) : server_socket(-1), username(username) {}
@@ -185,5 +178,228 @@ namespace whispernet {
         }
     }
 
+    bool Connection::send_connection_request(const std::string& target_username) {
+        // some sort of weird temp way to simulate a DHT
+        std::unordered_map<std::string, std::pair<std::string, int>> user_directory = {
+            {"alice", {"127.0.0.1", 8081}},
+            {"bob", {"127.0.0.1", 8082}}
+        };
+
+        auto it = user_directory.find(target_username);
+        if (it == user_directory.end()) {
+            std::cerr << "User " << target_username << " not found." << std::endl;
+            return false;
+        }
+
+        std::string ip_address = it->second.first;
+        int port = it->second.second;
+
+        int temp_socket = socket(AF_INET, SOCK_STREAM, 0);
+        if (temp_socket == -1) {
+            std::cerr << "Error creating socket!" << std::endl;
+            return false;
+        }
+
+        sockaddr_in peer_address{};
+        peer_address.sin_family = AF_INET;
+        peer_address.sin_port = htons(port);
+
+        if (inet_pton(AF_INET, ip_address.c_str(), &peer_address.sin_addr) <= 0) {
+            std::cerr << "Invalid peer IP address." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        if (connect(temp_socket, (sockaddr*)&peer_address, sizeof(peer_address)) < 0) {
+            std::cerr << "Connection to peer failed!" << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        // Prepare the connection request message
+        WhisperMessage request_msg;
+        request_msg.set_type(MessageType::CONNECTION_REQUEST);
+        ConnectionRequest* conn_request = request_msg.mutable_connection_request();
+        conn_request->set_username(username);
+        conn_request->set_did("your_did_here"); // Replace with your actual DID
+
+        // Serialize the message
+        std::string serialized_request;
+        if (!request_msg.SerializeToString(&serialized_request)) {
+            std::cerr << "Failed to serialize connection request." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        // Send the connection request message
+        if (!send_data(temp_socket, serialized_request)) {
+            std::cerr << "Failed to send connection request." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        // Wait for the challenge from the server
+        std::string challenge = receive_data(temp_socket);
+        if (challenge.empty()) {
+            std::cerr << "Failed to receive challenge from peer." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        // Sign the challenge using your private key
+        std::string signed_challenge = sign_challenge(challenge); // Implement this function
+
+        // Send the signed challenge back to the server
+        if (!send_data(temp_socket, signed_challenge)) {
+            std::cerr << "Failed to send signed challenge." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        // Wait for the response
+        std::string response_data = receive_data(temp_socket);
+        if (response_data.empty()) {
+            std::cerr << "Failed to receive response from peer." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        // Deserialize the response message
+        WhisperMessage response_msg;
+        if (!response_msg.ParseFromString(response_data)) {
+            std::cerr << "Failed to parse response message." << std::endl;
+            close(temp_socket);
+            return false;
+        }
+
+        if (response_msg.type() == MessageType::CONNECTION_RESPONSE) {
+            const ConnectionResponse& conn_response = response_msg.connection_response();
+            if (conn_response.accepted()) {
+                std::cout << target_username << " accepted your connection request." << std::endl;
+
+                // Add to connected peers
+                {
+                    std::lock_guard<std::mutex> lock(peers_mutex);
+                    this->connected_peers[target_username] = temp_socket;
+                }
+
+                // Start a thread to handle incoming messages from this peer
+                std::thread(&Connection::receive_messages, this, temp_socket, target_username).detach();
+
+                return true;
+            } else {
+                std::cout << target_username << " denied your connection request." << std::endl;
+                close(temp_socket);
+                return false;
+            }
+        } else {
+            std::cerr << "Invalid response from peer." << std::endl;
+            close(temp_socket);
+            return false;
+
+        }
+    }
+
+    void Connection::send_message(const std::string& target_username, const std::string& message) {
+        std::lock_guard<std::mutex> lock(peers_mutex);
+        auto it = connected_peers.find(target_username);
+        
+        if (it == connected_peers.end()) {
+            std::cerr << "You dont have a connection with " << target_username << std::endl;
+            return; 
+        }
     
+        int socket_fd = it->second;
+        WhisperMessage whisper_message_cht;
+        whisper_message_cht.set_type(MessageType::CHAT_MESSAGE);
+        ChatMessage* cht_msg = whisper_message_cht.mutable_chat_message();
+        cht_msg->set_sender(target_username);
+        cht_msg->set_content(message);
+
+        std::string serialized_message;
+        if (!whisper_message_cht.SerializeToString(&serialized_message)) {
+            std::cerr << "Failed to serialize chat message." << std::endl;
+            return;
+        }
+        // Send the message
+        if (!send_data(socket_fd, serialized_message)) {
+            std::cerr << "Failed to send message to " << target_username << std::endl;
+        }
+    }
+
+    void Connection::receive_messages(int socket_fd, const std::string& peer_username) {
+        while (true) {
+            std::string data = receive_data(socket_fd);
+            if (data.empty()) {
+                // Connection closed
+                std::cout << peer_username << " disconnected." << std::endl;
+                close(socket_fd);
+
+                // Remove from connected peers
+                {
+                    std::lock_guard<std::mutex> lock(peers_mutex);
+                    connected_peers.erase(peer_username);
+                }
+
+                break;
+            }
+
+            // Deserialize the received message
+            WhisperMessage received_msg;
+            if (!received_msg.ParseFromString(data)) {
+                std::cerr << "Failed to parse incoming message." << std::endl;
+                continue;
+            }
+
+            if (received_msg.type() == MessageType::CHAT_MESSAGE) {
+                const ChatMessage& chat_msg = received_msg.chat_message();
+                std::cout << "[" << chat_msg.sender() << "]: " << chat_msg.content() << std::endl;
+            } else {
+                std::cerr << "Received unknown message type." << std::endl;
+            }
+        }
+    }
+
+    bool Connection::send_data(int socket_fd, const std::string& data) {
+        // Send the length of the data first
+        uint32_t data_length = htonl(data.size());
+        if (send(socket_fd, &data_length, sizeof(data_length), 0) != sizeof(data_length)) {
+            return false;
+        }
+
+        // Then send the actual data
+        ssize_t bytes_sent = send(socket_fd, data.c_str(), data.size(), 0);
+        return bytes_sent == (ssize_t)data.size();
+    }
+
+    std::string Connection::receive_data(int socket_fd) {
+        // Receive the length of the incoming data
+        uint32_t data_length_network;
+        ssize_t len = recv(socket_fd, &data_length_network, sizeof(data_length_network), 0);
+        if (len <= 0) {
+            return "";
+        }
+        uint32_t data_length = ntohl(data_length_network);
+
+        // Receive the actual data
+        std::string data;
+        data.resize(data_length);
+        size_t total_received = 0;
+        while (total_received < data_length) {
+            ssize_t bytes_received = recv(socket_fd, &data[total_received], data_length - total_received, 0);
+            if (bytes_received <= 0) {
+                return "";
+            }
+            total_received += bytes_received;
+        }
+        return data;
+    }
+
+    // Simulated function to sign the challenge using your private key
+    std::string Connection::sign_challenge(const std::string& challenge) {
+        // In a real implementation, this would use cryptographic functions to sign the challenge
+        // For testing, we'll return the challenge itself as the "signed" data
+        return challenge; // Replace with actual signature
+    }
+
 }
