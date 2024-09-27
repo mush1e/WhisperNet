@@ -79,9 +79,3 @@ target_link_libraries(whispernet
     absl::log_internal_message
     absl::log_internal_check_op
 )
-
-# If Abseil is in a non-standard location, uncomment and modify the following line:
-# set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/path/to/abseil/installation")
-
-# If you're still having issues, uncomment and modify the following line:
-# link_directories(/path/to/abseil/lib)
