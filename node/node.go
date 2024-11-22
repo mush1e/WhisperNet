@@ -1,7 +1,7 @@
 package node
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 )
 
@@ -11,6 +11,8 @@ type Node struct {
 	Storage map[string]string
 	mtx     sync.Mutex
 }
+
+var ErrPeerAlreadyExists = errors.New("peer already exists in node's storage")
 
 func InitializeNode(id string) *Node {
 	return &Node{
@@ -29,11 +31,9 @@ func (n *Node) AddPeer(peerID, addr string) {
 func (n *Node) Store(key, value string) error {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
-
-	if _, exists := n.Storage[key]; exists {
-		return fmt.Errorf("key %q already exists in storage", key)
+	if _, ok := n.Storage[key]; ok {
+		return ErrPeerAlreadyExists
 	}
-
 	n.Storage[key] = value
 	return nil
 }
