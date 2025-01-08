@@ -1,25 +1,12 @@
-# CMake files
-CMakeCache.txt
-CMakeFiles/
-Makefile
-cmake_install.cmake
-build/
-WhisperNetConfig.cmake
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
 
-# Build directory
-/build/
-
-# Compiled object files
-*.o
-
-# Executables
-whispernet
-
-# IDE files
-*.idea/
-*.vscode/
-*.sublime-project
-*.sublime-workspace
+# Output files
+*.out
 
 # Logs
 *.log
@@ -28,7 +15,28 @@ whispernet
 *.tmp
 *.temp
 
-#pem file
-*.pem
+# System files
+.DS_Store
+Thumbs.db
 
-generated/
+# Go workspace files
+*.swp
+*.swo
+
+# Dependency directories (for vendoring)
+vendor/
+
+# Build directories
+bin/
+build/
+dist/
+
+# IDE/editor-specific files
+.vscode/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Generated
