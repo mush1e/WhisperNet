@@ -1,13 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/whispernet/internal/cli"
 	"github.com/whispernet/internal/core"
-	"github.com/whispernet/internal/p2p"
 )
 
 func main() {
@@ -44,23 +43,6 @@ func main() {
 	fmt.Printf("Your DID: %s\n", didString)
 	fmt.Printf("Public Key (hex): %x\n", keyPair.PublicKey)
 
-	mode := flag.String("mode", "server", "Run as 'server' or 'client'")
-	port := flag.Int("port", 3000, "port to listen/connect on")
-	host := flag.String("host", "127.0.0.1", "host to connect to")
-	msg := flag.String("msg", "Hello from client", "Message to send to the server")
-	flag.Parse()
+	cli.StartInteractiveCLI()
 
-	switch *mode {
-	case "server":
-		if err := p2p.StartServer(*port); err != nil {
-			log.Fatalf("server error : %v", err)
-		}
-	case "client":
-		if err := p2p.ConnectToServer(*host, *port, *msg); err != nil {
-			log.Fatalf("client error : %v", err)
-		}
-
-	default:
-		log.Fatalf("invalid mode flag pick `server` or `client`")
-	}
 }
