@@ -34,6 +34,12 @@ func configurePort() (err error) {
 	return nil
 }
 
+func RecvChatCLI(conn net.Conn) error {
+	fmt.Printf("\n recieving chat inv from %q accept? (y/n)\n", conn.RemoteAddr().String())
+
+	return nil
+}
+
 func startChatCLI() error {
 	fmt.Println("enter address you want to connect to (host:port)")
 	reader := bufio.NewReader(os.Stdin)
@@ -44,51 +50,64 @@ func startChatCLI() error {
 	return p2p.Connect(addr)
 }
 
-func StartInteractiveCLI() {
+func handleMenu() {
 	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Println()
-		fmt.Println("WhisperNet Menu:")
-		fmt.Println("[1] Configure port")
-		fmt.Println("[2] Join network")
-		fmt.Println("[3] Start chat session")
-		fmt.Println("[q] Quit")
-		fmt.Print("Choose an option: ")
+	fmt.Println()
+	fmt.Println("WhisperNet Menu:")
+	fmt.Println("[1] Configure port")
+	fmt.Println("[2] Join network")
+	fmt.Println("[3] Start chat session")
+	fmt.Println("[q] Quit")
+	fmt.Print("Choose an option: ")
 
-		choice, _ := reader.ReadString('\n')
-		choice = strings.TrimSpace(choice)
+	choice, _ := reader.ReadString('\n')
+	choice = strings.TrimSpace(choice)
 
-		switch choice {
+	switch choice {
 
-		case "1":
-			if err := configurePort(); err != nil {
-				fmt.Printf("invalid port : %q\n", err)
-				continue
-			}
-
-		case "2":
-			if !p2p.IsListening {
-				ln, err := p2p.Listen(Port)
-				if err != nil {
-					log.Fatalf("could not begin listening on port %v : %q", Port, err)
-				}
-				listener = ln
-			} else {
-				fmt.Println("you are already listening for connections on port : ", Port)
-			}
-
-		case "3":
-			if err := startChatCLI(); err != nil {
-				fmt.Printf("error starting chat : %q\n", err)
-			}
-
-		case "q":
-			fmt.Println("gracefully shutting down whispernet!")
-			if listener != nil {
-				log.Println("terminating TCP listener")
-				listener.Close()
-			}
+	case "1":
+		if err := configurePort(); err != nil {
+			fmt.Printf("invalid port : %q\n", err)
 			return
+		}
+
+	case "2":
+		if !p2p.IsListening {
+			ln, err := p2p.Listen(Port)
+			if err != nil {
+				log.Fatalf("could not begin listening on port %v : %q", Port, err)
+			}
+			listener = ln
+		} else {
+			fmt.Println("you are already listening for connections on port : ", Port)
+		}
+
+	case "3":
+		if err := startChatCLI(); err != nil {
+			fmt.Printf("error starting chat : %q\n", err)
+		}
+
+	case "q":
+		fmt.Println("gracefully shutting down whispernet!")
+		if listener != nil {
+			log.Println("terminating TCP listener")
+			listener.Close()
+		}
+		return
+	}
+}
+
+func StartInteractiveCLI() {
+	for {
+		select {
+		case conn := <-p2p.ConnChan:
+			err := p2p.RecvChat(conn)
+			if err != nil {
+				log.Panicf("error establishing chat : %q", err)
+			}
+
+		default:
+			handleMenu()
 		}
 	}
 }

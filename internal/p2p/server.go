@@ -1,13 +1,34 @@
 package p2p
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 )
 
 var IsListening bool
+var ConnChan = make(chan net.Conn)
+
+func RecvChat(conn net.Conn) error {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("\n recieving chat inv from %q accept? (y/n)\n", conn.RemoteAddr().String())
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	line = strings.TrimSpace(line)
+	switch line {
+	case "y":
+		startChat(conn)
+	case "n":
+		conn.Write([]byte("chat request denied from " + conn.LocalAddr().String() + "\n"))
+		return nil
+	}
+	return nil
+}
 
 func Listen(port int) (net.Listener, error) {
 	addr := fmt.Sprintf(":%d", port)
@@ -32,7 +53,7 @@ func Listen(port int) (net.Listener, error) {
 				log.Printf("failed to accept connection : %v\n", err)
 				continue
 			}
-			go startChat(conn)
+			ConnChan <- conn
 		}
 	}()
 
