@@ -34,6 +34,16 @@ func configurePort() (err error) {
 	return nil
 }
 
+func startChatCLI() error {
+	fmt.Println("enter address you want to connect to (host:port)")
+	reader := bufio.NewReader(os.Stdin)
+	addr, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	return p2p.Connect(addr)
+}
+
 func StartInteractiveCLI() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -65,6 +75,11 @@ func StartInteractiveCLI() {
 				listener = ln
 			} else {
 				fmt.Println("you are already listening for connections on port : ", Port)
+			}
+
+		case "3":
+			if err := startChatCLI(); err != nil {
+				fmt.Printf("error starting chat : %q\n", err)
 			}
 
 		case "q":

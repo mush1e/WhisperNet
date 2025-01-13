@@ -23,7 +23,7 @@ func Listen(port int) (net.Listener, error) {
 
 	go func() {
 		for {
-			_, err := listener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					log.Println("Listener closed, stopping accept loop.")
@@ -32,6 +32,7 @@ func Listen(port int) (net.Listener, error) {
 				log.Printf("failed to accept connection : %v\n", err)
 				continue
 			}
+			go startChat(conn)
 		}
 	}()
 
