@@ -1,4 +1,4 @@
-# WhisperNet
+# WhisperNet (currently abandoned) 
 **Stay Hidden, Stay Secure**
 *A decentralized, privacy-focused social network built from scratch in Go.*
 
